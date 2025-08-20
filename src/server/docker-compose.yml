@@ -57,6 +57,23 @@ services:
     volumes:
       - ./api/config.yaml:/app/config.yaml
 
+  memobase-mcp:
+    platform: linux/amd64
+    container_name: memobase-mcp
+    build:
+      context: ../mcp
+    environment:
+      - MEMOBASE_BASE_URL=${MEMOBASE_BASE_URL}
+      - MEMOBASE_API_KEY=${MEMOBASE_API_KEY}
+      - HOST=${MCP_HOST:-0.0.0.0}
+      - PORT=${MCP_PORT:-8050}
+      - TRANSPORT=${MCP_TRANSPORT:-sse}
+    depends_on:
+      memobase-server-api:
+        condition: service_started
+    ports:
+      - '${MCP_EXPORT_PORT:-8050}:8050'
+
 volumes:
   memobase-server-db:
     driver: local
