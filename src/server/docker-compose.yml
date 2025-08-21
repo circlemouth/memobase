@@ -43,6 +43,15 @@ services:
       - PROJECT_ID=${PROJECT_ID}
       - API_HOSTS=${API_HOSTS}
       - USE_CORS=${USE_CORS}
+      # Pass app config via env to avoid file-mount issues
+      - MEMOBASE_LLM_API_KEY=${MEMOBASE_LLM_API_KEY}
+      - MEMOBASE_LLM_BASE_URL=${MEMOBASE_LLM_BASE_URL}
+      - MEMOBASE_BEST_LLM_MODEL=${MEMOBASE_BEST_LLM_MODEL}
+      - MEMOBASE_EMBEDDING_PROVIDER=${MEMOBASE_EMBEDDING_PROVIDER}
+      - MEMOBASE_EMBEDDING_API_KEY=${MEMOBASE_EMBEDDING_API_KEY}
+      - MEMOBASE_EMBEDDING_BASE_URL=${MEMOBASE_EMBEDDING_BASE_URL}
+      - MEMOBASE_EMBEDDING_MODEL=${MEMOBASE_EMBEDDING_MODEL}
+      - MEMOBASE_EMBEDDING_DIM=${MEMOBASE_EMBEDDING_DIM}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -55,7 +64,9 @@ services:
     build:
       context: ./api
     volumes:
-      - ./api/config.yaml:/app/config.yaml
+      # If you want to load config from file, map a real file.
+      # The previous mapping pointed to a directory and caused errors.
+      - ./api/config.yaml.example:/app/config.yaml:ro
 
   memobase-mcp:
     platform: linux/amd64

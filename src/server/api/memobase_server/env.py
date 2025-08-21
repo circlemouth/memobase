@@ -173,12 +173,47 @@ class Config:
 
     @classmethod
     def load_config(cls) -> "Config":
-        if not os.path.exists("config.yaml"):
+        # Allow overriding config path via env; default to ./config.yaml
+        configured_path = os.getenv("MEMOBASE_CONFIG_PATH", "config.yaml")
+
+        overwrite_config = {}
+
+        try:
+            if os.path.exists(configured_path):
+                # If a directory is provided (common when a volume is mounted by mistake),
+                # try to find a usable YAML file inside, otherwise skip file loading.
+                if os.path.isdir(configured_path):
+                    candidate = None
+                    for name in ("config.yaml", "config.yml"):
+                        p = os.path.join(configured_path, name)
+                        if os.path.isfile(p):
+                            candidate = p
+                            break
+                    if candidate is None:
+                        # Pick the first *.ya?ml file if any
+                        for fname in sorted(os.listdir(configured_path)):
+                            if fname.endswith((".yaml", ".yml")):
+                                p = os.path.join(configured_path, fname)
+                                if os.path.isfile(p):
+                                    candidate = p
+                                    break
+                    if candidate:
+                        with open(candidate, "r", encoding="utf-8") as f:
+                            overwrite_config = yaml.safe_load(f) or {}
+                            LOG.info(f"Loaded config from directory: {candidate}")
+                    else:
+                        LOG.warning(
+                            f"Config path is a directory with no YAML files: {configured_path}. Skipping file config."
+                        )
+                else:
+                    with open(configured_path, "r", encoding="utf-8") as f:
+                        overwrite_config = yaml.safe_load(f) or {}
+                        LOG.info(f"Loaded config file: {configured_path}")
+            else:
+                LOG.info(f"Config file not found: {configured_path}. Using env defaults only.")
+        except Exception as e:
+            LOG.error(f"Failed to load config from {configured_path}: {e}")
             overwrite_config = {}
-        else:
-            with open("config.yaml") as f:
-                overwrite_config = yaml.safe_load(f)
-                LOG.info(f"Load ./config.yaml")
 
         # Process environment variables
         overwrite_config = cls._process_env_vars(overwrite_config)
